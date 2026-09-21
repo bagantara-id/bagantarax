@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BAGANTARA</title>
+    
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#02040a">
+    <link rel="apple-touch-icon" href="./assets/icon-192.png">
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <link rel="stylesheet" href="./css/theme.css">
+    <link rel="stylesheet" href="./css/map.css">
+</head>
+<body>
+    
+    <div id="app-container" class="app-container">
+        
+        <!-- HEADER -->
+        <header class="top-header glass-panel">
+            <div class="brand-area">
+                <img src="./assets/logo-3d.png" alt="Logo" class="brand-img" onerror="this.src='./assets/icon-192.png'">
+                <div class="brand-text">
+                    <span class="title">BAGANTARA</span>
+                    <span class="subtitle">Secure Transit</span>
+                </div>
+            </div>
+            <div class="header-controls">
+                <div class="status-indicator">
+                    <span class="dot pulse-green"></span>
+                    <span class="status-text">ONLINE</span>
+                </div>
+                <button id="btnFullscreen" class="btn-3d-pulse" aria-label="Toggle Fullscreen">
+                    <i class="fa-solid fa-expand"></i><span>MAX</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- DASHBOARD (PILIH LAYANAN) -->
+        <section id="view-dashboard" class="spa-view active-view" style="padding-top: 85px;">
+            <div class="service-selection-area" style="padding: 0 15px;">
+                <h2 class="font-tech text-main text-center mb-4" style="font-size: 1rem; letter-spacing: 1px;">PILIH PROTOKOL LAYANAN</h2>
+                <div class="service-grid" id="serviceGrid">
+                    <button class="service-card" data-service="RIDE">
+                        <i class="fa-solid fa-motorcycle text-gold" style="font-size: 2.5rem;"></i>
+                        <span class="font-tech mt-2">RIDE</span>
+                    </button>
+                    <button class="service-card" data-service="CAR">
+                        <i class="fa-solid fa-car-side text-gold" style="font-size: 2.5rem;"></i>
+                        <span class="font-tech mt-2">CAR</span>
+                    </button>
+                    <button class="service-card" data-service="EXPRESS">
+                        <i class="fa-solid fa-cube text-gold" style="font-size: 2.5rem;"></i>
+                        <span class="font-tech mt-2">EXPRESS</span>
+                    </button>
+                    <button class="service-card" data-service="JASTIP">
+                        <i class="fa-solid fa-bag-shopping text-gold" style="font-size: 2.5rem;"></i>
+                        <span class="font-tech mt-2">JASTIP</span>
+                    </button>
+                </div>
+                
+                <!-- TOMBOL ADDRESS VAULT (Brankas Alamat) -->
+                <button id="btnOpenVault" class="btn-primary w-full mt-4" style="padding: 12px; font-size: 0.75rem; background: var(--void-black); color: var(--neon-gold); border-color: var(--neon-gold);">
+                    <i class="fa-solid fa-vault"></i> MUAT KREDENSIAL ALAMAT TERSIMPAN (.BGN)
+                </button>
+            </div>
+
+            <div class="promo-area mt-4" id="promoContainer" style="padding: 0 15px; padding-bottom: 100px;">
+                <div class="glass-panel" style="padding: 15px; border-radius: 12px; border-left: 4px solid var(--neon-green);">
+                    <h3 class="font-tech text-sm mb-1 text-main">JARINGAN AKTIF</h3>
+                    <p class="text-muted" style="font-size: 0.75rem;">Sistem siap melacak rute Anda secara end-to-end tanpa perantara komisi.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- AREA PETA & WIZARD FLOW PANEL -->
+        <section id="view-map" class="spa-view hidden-view">
+            <main class="map-area">
+                <div id="map-container"></div>
+                <button id="btnMyGPS" class="btn-float-gps"><i class="fa-solid fa-crosshairs"></i></button>
+            </main>
+
+            <div class="order-panel glass-panel">
+                <div class="selected-service-info font-tech text-gold text-xs mb-3 text-center border-b border-cyber pb-2">
+                    LAYANAN TERKUNCI: <span id="labelLayananPeta" class="text-main font-bold">...</span>
+                </div>
+
+                <!-- Indikator Wizard Text -->
+                <div id="wizardInstruction" class="text-center font-tech text-neon text-sm mb-3 font-bold pulse-text">
+                    1. TENTUKAN LOKASI TUJUAN
+                </div>
+
+                <div class="action-area mt-3">
+                    <div class="price-display hidden" id="priceArea">
+                        <span class="price-label">ESTIMASI TARIF</span>
+                        <span class="price-value" id="priceValue">Rp 0</span>
+                    </div>
+                    <!-- Tombol Utama Wizard yang akan berubah-ubah -->
+                    <button id="btnWizardNext" class="btn-primary w-full">
+                        <i class="fa-solid fa-location-crosshairs"></i> KUNCI TITIK TUJUAN
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- OVERLAY: FORM DETAIL ALAMAT (Dinamis untuk Jemput & Tujuan) -->
+        <div id="address-form-overlay" class="captcha-overlay hidden">
+            <div class="glass-panel" style="padding: 25px; border-radius: 16px; width: 90%; max-width: 400px; max-height: 85vh; overflow-y: auto;">
+                <h3 id="formAddressTitle" class="font-tech text-gold text-center mb-4"><i class="fa-solid fa-map-location-dot"></i> DETAIL ALAMAT</h3>
+                
+                <div class="location-inputs" style="margin-bottom: 20px;">
+                    <div class="input-group mb-2">
+                        <i class="fa-solid fa-city text-muted"></i>
+                        <input type="text" id="inputKecamatan" placeholder="Kecamatan & Desa (Satelit)..." required>
+                    </div>
+                    <div class="input-line" style="height: 1px; width: 100%; margin: 8px 0;"></div>
+                    <div class="input-group mb-2">
+                        <i class="fa-solid fa-house-user text-blue"></i>
+                        <input type="text" id="inputRtRw" placeholder="Jalan / RT / RW / No. Rumah..." required>
+                    </div>
+                    <div class="input-line" style="height: 1px; width: 100%; margin: 8px 0;"></div>
+                    <div class="input-group">
+                        <i class="fa-solid fa-pen-to-square text-neon"></i>
+                        <input type="text" id="inputPatokanDetail" placeholder="Patokan (Cth: Pagar Hitam)..." required>
+                    </div>
+                </div>
+                
+                <button id="btnSaveAddress" class="btn-primary w-full"><i class="fa-solid fa-floppy-disk"></i> SIMPAN LOKASI</button>
+                <button id="btnCancelAddress" class="btn-icon w-full mt-3" style="font-size: 0.75rem;">Kembali ke Peta</button>
+            </div>
+        </div>
+
+        <!-- OVERLAY: ADDRESS VAULT (Brankas Muat Alamat) -->
+        <div id="vault-overlay" class="captcha-overlay hidden">
+            <div class="glass-panel" style="padding: 25px; border-radius: 16px; width: 90%; max-width: 400px;">
+                <h3 class="font-tech text-gold text-center mb-4"><i class="fa-solid fa-vault"></i> BRANKAS ALAMAT</h3>
+                <p class="text-center text-muted text-xs mb-4">Muat file <b class="text-main">.bgn</b> atau tempelkan Token Alamat untuk mengisi rute secara otomatis tanpa mengetik ulang.</p>
+                
+                <div class="location-inputs mb-4">
+                    <div class="input-group">
+                        <i class="fa-solid fa-key text-neon"></i>
+                        <input type="text" id="inputToken" placeholder="Tempel Token Alamat di sini...">
+                    </div>
+                </div>
+                
+                <button id="btnProcessToken" class="btn-primary w-full mb-3" style="font-size: 0.75rem;"><i class="fa-solid fa-bolt"></i> PROSES TOKEN</button>
+                
+                <div class="text-center text-muted text-xs mb-3">--- ATAU ---</div>
+                
+                <!-- Input File Tersembunyi -->
+                <input type="file" id="fileBgnUpload" accept=".bgn" style="display: none;">
+                <button id="btnTriggerFile" class="btn-primary w-full" style="background: var(--void-black); color: var(--text-main); border-color: var(--text-muted); font-size: 0.75rem;">
+                    <i class="fa-solid fa-folder-open"></i> UNGGAH FILE .BGN
+                </button>
+
+                <button id="btnCloseVault" class="btn-icon w-full mt-4" style="font-size: 0.75rem;">Batal</button>
+            </div>
+        </div>
+
+        <!-- VIEW: DAFTAR DRIVER -->
+        <section id="view-drivers" class="spa-view hidden-view" style="background: var(--void-black); overflow-y: auto; padding-top: 85px;">
+            <div style="padding: 15px;">
+                <button id="btnBackToMap" class="btn-icon mb-3" style="font-size: 0.9rem;"><i class="fa-solid fa-arrow-left"></i> BATALKAN PENCARIAN</button>
+                <h3 class="font-tech text-gold text-center mb-4" style="font-size: 1rem; border-bottom: 1px solid var(--border-cyber); padding-bottom: 10px;">MITRA TERSEDIA</h3>
+                <div id="driverListContainer" style="display: flex; flex-direction: column; gap: 12px; padding-bottom: 100px;">
+                    <!-- Akan diisi otomatis -->
+                </div>
+            </div>
+        </section>
+
+        <!-- OVERLAY: PUSAT BANTUAN -->
+        <div id="help-overlay" class="captcha-overlay hidden">
+            <div class="glass-panel" style="padding: 25px; border-radius: 16px; width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto;">
+                <h3 class="font-tech text-neon text-center mb-4"><i class="fa-solid fa-circle-info"></i> PUSAT INFORMASI</h3>
+                <div id="helpContent">
+                    <p>Selamat datang di BAGANTARA. Platform penghubung langsung (Peer-to-Peer) yang dirancang untuk transparansi penuh.</p>
+                    <p>Kami <b>TIDAK memungut biaya layanan, komisi, atau potongan sepeser pun</b> dari Klien maupun Mitra Pengemudi.</p>
+                    <p>Seluruh kesepakatan tarif, pelacakan rute, dan komunikasi dikonfirmasi secara aman dan mandiri melalui WhatsApp Mitra pilihan Anda.</p>
+                </div>
+                <button id="btnCloseHelp" class="btn-primary w-full mt-4" style="font-size: 0.75rem;">SAYA MENGERTI & TUTUP</button>
+            </div>
+        </div>
+
+        <!-- OVERLAY: FORM IDENTITAS KLIEN -->
+        <div id="client-form-overlay" class="captcha-overlay hidden">
+            <div class="glass-panel" style="padding: 25px; border-radius: 16px; width: 90%; max-width: 350px;">
+                <h3 class="font-tech text-gold text-center mb-4"><i class="fa-solid fa-shield-halved"></i> OTORITAS KLIEN</h3>
+                <div class="location-inputs" style="margin-bottom: 20px;">
+                    <div class="input-group mb-2">
+                        <i class="fa-solid fa-user text-muted"></i>
+                        <input type="text" id="inputClientName" placeholder="Nama Lengkap..." required>
+                    </div>
+                    <div class="input-line" style="height: 1px; width: 100%; margin: 10px 0;"></div>
+                    <div class="input-group">
+                        <i class="fa-brands fa-whatsapp text-neon"></i>
+                        <input type="tel" id="inputClientWA" placeholder="Nomor WhatsApp..." required>
+                    </div>
+                </div>
+                <button id="btnSubmitClient" class="btn-primary w-full" style="font-size: 0.75rem;">KONFIRMASI JALUR DATA</button>
+                <button id="btnCancelClient" class="btn-icon w-full mt-2" style="font-size: 0.75rem;">Batal</button>
+            </div>
+        </div>
+
+        <!-- LAYAR SILUMAN CAPTCHA -->
+        <div id="captcha-overlay" class="captcha-overlay hidden">
+            <div class="captcha-box">
+                <div class="captcha-header font-tech text-main text-sm">Verifikasi Keamanan</div>
+                <div class="captcha-body flex items-center gap-3">
+                    <input type="checkbox" id="fakeCaptchaCheck" class="captcha-check">
+                    <span class="text-muted text-xs">Saya bukan robot</span>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/a/ad/RecaptchaLogo.svg" alt="reCaptcha" style="height: 25px; margin-left: auto;">
+                </div>
+                <div id="captchaProcessing" class="captcha-processing hidden text-center mt-4">
+                    <i class="fa-solid fa-circle-notch fa-spin text-neon text-2xl mb-2"></i>
+                    <div class="font-tech text-main text-lg font-bold" id="countdownTimer">7</div>
+                    <div class="text-muted text-xs mt-1">Mengamankan Transaksi & Sinkronisasi Data...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CANVAS DIGITAL (Tersembunyi) -->
+        <canvas id="kycCanvas" style="display: none;"></canvas>
+
+        <!-- NAVIGASI BAWAH -->
+        <nav class="bottom-nav glass-panel">
+            <a href="#" class="nav-item active" id="navHome">
+                <i class="fa-solid fa-house"></i><span>Beranda</span>
+            </a>
+            <a href="#" class="nav-item" id="navActivity">
+                <i class="fa-solid fa-receipt"></i><span>Aktivitas</span>
+            </a>
+            <a href="#" class="nav-item" id="navHelp">
+                <i class="fa-solid fa-life-ring"></i><span>Bantuan</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- PWA Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log('PWA gagal', err));
+            });
+        }
+    </script>
+    
+    <!-- SCRIPT MESIN BAGANTARA FINAL (BERSIH) -->
+    <script src="./js/app.js"></script>
+    <script src="./js/wizard-flow.js"></script>
+    <script src="./js/map.js"></script>
+    <script src="./js/address-vault.js"></script>
+    <script src="./js/sheets-engine.js"></script>
+    <script src="./js/canvas-engine.js"></script>
+    <script src="./js/kyc-checkout.js"></script>
+</body>
+</html>
