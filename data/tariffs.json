@@ -1,0 +1,9 @@
+{
+    "jarak_minimum_km": 2,
+    "layanan": {
+        "RIDE": { "tarif_dasar": 8000, "tarif_per_km": 2500 },
+        "CAR": { "tarif_dasar": 15000, "tarif_per_km": 5000 },
+        "EXPRESS": { "tarif_dasar": 10000, "tarif_per_km": 2000 },
+        "JASTIP": { "tarif_dasar": 15000, "tarif_per_km": 2500 }
+    }
+}
